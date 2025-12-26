@@ -11,8 +11,33 @@ dotenv.config()
 const app = express()
 const PORT = process.env.PORT || 4000
 
+// CORS configuration for both local and production
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+  process.env.FRONTEND_ORIGIN
+].filter(Boolean)
+
 app.use(helmet())
-app.use(cors({ origin: process.env.FRONTEND_ORIGIN || "*" }))
+app.use(cors({ 
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl requests)
+    if (!origin) return callback(null, true)
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true)
+    } else {
+      // Also allow any vercel.app domain
+      if (origin.includes('vercel.app')) {
+        callback(null, true)
+      } else {
+        console.warn(`[CORS] Blocked origin: ${origin}`)
+        callback(null, false)
+      }
+    }
+  },
+  credentials: true
+}))
 app.use(express.json({ limit: "1mb" }))
 app.use(morgan("tiny"))
 
