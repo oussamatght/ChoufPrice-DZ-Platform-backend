@@ -126,12 +126,6 @@ sequenceDiagram
 
 ---
 
-## ✅ Assessor Guide
-
-- Documentation (20%): Clear setup, endpoints summary, architecture + sequence diagrams, API_DOCS.md for details
-- Implementation (40%): Auth, CRUD + vote, WebSocket chat with delete, CORS/Helmet, logging
-- Presentation/Video (30%): Demo script above with real requests and WS echo
-- Creativity (10%): Secure delete ownership, clean layered architecture, real-time UX
 
 ## 🧪 Quick Test
 
