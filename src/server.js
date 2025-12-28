@@ -60,11 +60,18 @@ wss.on("connection", (ws, user) => {
             const parsed = JSON.parse(data.toString())
 
             if (parsed.type === "message") {
+                // Accept either 'message' or legacy 'text' field
+                const content = typeof parsed.message === "string" ? parsed.message : parsed.text
+                if (!content || !content.trim()) {
+                    ws.send(JSON.stringify({ type: "error", message: "Empty message" }))
+                    return
+                }
+
                 const message = {
                     id: Date.now().toString(),
                     userId: user ? user.id : null,
                     userName: user ? user.name : "Guest",
-                    message: parsed.message,
+                    message: content.trim(),
                     timestamp: new Date().toISOString()
                 }
 
@@ -82,6 +89,37 @@ wss.on("connection", (ws, user) => {
                         }))
                     }
                 })
+                return
+            }
+
+            if (parsed.type === "delete") {
+                const { messageId } = parsed
+                if (!messageId) {
+                    ws.send(JSON.stringify({ type: "error", message: "messageId required for delete" }))
+                    return
+                }
+
+                const index = chatHistory.findIndex((m) => m.id === messageId)
+                if (index === -1) {
+                    ws.send(JSON.stringify({ type: "error", message: "Message not found" }))
+                    return
+                }
+
+                const target = chatHistory[index]
+                    // Only allow deletion by owner; guests cannot delete others' messages
+                if (!user || !target.userId || target.userId !== user.id) {
+                    ws.send(JSON.stringify({ type: "error", message: "Not authorized to delete this message" }))
+                    return
+                }
+
+                // Remove and broadcast deletion
+                chatHistory.splice(index, 1)
+                chatClients.forEach((client) => {
+                    if (client.ws.readyState === 1) {
+                        client.ws.send(JSON.stringify({ type: "delete", messageId }))
+                    }
+                })
+                return
             }
         } catch (err) {
             console.error("[ws] Message parse error:", err)
