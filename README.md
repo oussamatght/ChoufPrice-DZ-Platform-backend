@@ -92,3 +92,68 @@ flowchart LR
 
 - Tokens expire in 7d (see `src/routes/auth.js`).
 - Keep `.env` out of git (already ignored).
+
+---
+
+## 🎥 Presentation
+
+- Demo video: https://youtu.be/your-backend-demo
+- Slide deck: https://slides.com/your-backend-deck
+
+Suggested backend demo flow:
+
+- 1. `GET /health` to show service up
+- 2. Register + login to obtain JWT
+- 3. `GET /api/reports` then `POST /api/reports` and `POST /api/reports/:id/vote`
+- 4. Connect to `ws://localhost:4000/ws/chat?token=<jwt>` and send + delete messages (broadcast)
+
+Sequence (auth + chat):
+
+```mermaid
+sequenceDiagram
+   participant C as Client
+   participant API as HTTP API
+   participant WS as WebSocket
+   participant DB as MongoDB
+   C->>API: POST /api/auth/login
+   API->>DB: verify credentials
+   API-->>C: 200 { token, user }
+   C->>WS: connect ?token=jwt
+   C->>WS: send { type:"message", message }
+   WS->>DB: persist
+   WS-->>C: echo { type:"message" }
+```
+
+---
+
+## ✅ Assessor Guide
+
+- Documentation (20%): Clear setup, endpoints summary, architecture + sequence diagrams, API_DOCS.md for details
+- Implementation (40%): Auth, CRUD + vote, WebSocket chat with delete, CORS/Helmet, logging
+- Presentation/Video (30%): Demo script above with real requests and WS echo
+- Creativity (10%): Secure delete ownership, clean layered architecture, real-time UX
+
+## 🧪 Quick Test
+
+```bash
+# Health
+curl http://localhost:4000/health
+
+# Register
+curl -X POST http://localhost:4000/api/auth/register \
+   -H "Content-Type: application/json" \
+   -d '{"email":"test@example.com","password":"pass123","name":"Test"}'
+
+# Login
+TOKEN=$(curl -s -X POST http://localhost:4000/api/auth/login \
+   -H "Content-Type: application/json" \
+   -d '{"email":"test@example.com","password":"pass123"}' | jq -r '.token')
+
+# Create report
+curl -X POST http://localhost:4000/api/reports \
+   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+   -d '{"product":"Sugar","price":150,"city":"Algiers"}'
+
+# Chat (WebSocket)
+# Use wscat or browser: ws://localhost:4000/ws/chat?token=$TOKEN
+```
